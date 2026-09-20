@@ -1,0 +1,31 @@
+services:
+  api:
+    build: .
+    image: container-code-adjudication:latest
+    container_name: container-code-adjudication
+    ports:
+      - "${PORT:-8000}:8000"
+    environment:
+      # SQLite 数据库文件（容器内路径），映射到命名卷持久化
+      DB_PATH: /data/adjudication.db
+      HOST: 0.0.0.0
+      PORT: "8000"
+      TOP_N: "20"
+      MAX_CANDIDATES_PER_POSITION: "100"
+      # 第 4 位设备类别标识：U 集装箱 / Z 挂车底盘 / J 可拆卸设备
+      CATEGORY_IDS: UJZ
+      # OCR 越类字符是否按形近表纠正，以及纠正惩罚系数
+      ENABLE_CATEGORY_CORRECTION: "true"
+      CONFUSION_PENALTY_SCALE: "1.0"
+    volumes:
+      - adjudication-data:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3).status == 200 else 1)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  adjudication-data:
